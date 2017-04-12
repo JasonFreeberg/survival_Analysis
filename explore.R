@@ -152,9 +152,11 @@ transitioned <- read.csv(file="transitioned.csv", header=T)
 censored <- read.csv(file="censored.csv", header=T)
 full <- rbind(transitioned, censored)
 
-# Make "event" column in full dataframe. 0 -> censored, 1 -> transitioned
-full$event <- as.factor(ifelse(full$UNQID_tmp %in% transitioned$UNQID_tmp, 1, 0))
-full$duration <- full$DURATION
+full$Partial_code_ff <- as.numeric(full$Partial_code_ff)    # Coerce the event variable to numeric
+
+# Need to remove BMI stuff
+bmiQuants <- quantile(full$BMInew, seq(0, 1, 0.25))
+full$bmiCat <- cut(bmiQuants, unique(bmiQuants), include.lowest=TRUE)
 
 #
 ##

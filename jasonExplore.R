@@ -1,5 +1,4 @@
 
-library(ggplot2)
 
 #  When this script is ran through Explore.R, the following is redundant
 #transitioned <- read.csv(file="transitioned.csv", header=T)
@@ -13,6 +12,10 @@ density <- ggplot(data=full, mapping=aes(x=DURATION, fill=event)) +
               xlab("Time (days)") +
               scale_y_continuous(labels = scales::percent)
 
-surv1 <- Surv(full$duration, event=full$event)
-basicKM <- survfit(surv1 ~ 1)
-kmPlot1 <- ggsurv(surv1)
+# Exploratory KM Estimates
+survObject <- Surv(full$DURATION, event=full$Partial_code_ff)
+bmiKM <- NULL
+alcKM <- survfit(survObject ~ full$alcohol)
+
+ggsurv(alcKM, plot.cens = F) +
+  
