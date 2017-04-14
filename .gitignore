@@ -2,3 +2,4 @@
 # Keep data from being pushed to Git Server
 
 *.csv
+.RHistory

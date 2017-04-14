@@ -154,10 +154,6 @@ full <- rbind(transitioned, censored)
 
 full$Partial_code_ff <- as.numeric(full$Partial_code_ff)    # Coerce the event variable to numeric
 
-# Need to remove BMI stuff
-bmiQuants <- quantile(full$BMInew, seq(0, 1, 0.25))
-full$bmiCat <- cut(bmiQuants, unique(bmiQuants), include.lowest=TRUE)
-
 #
 ##
 ###
@@ -172,5 +168,5 @@ full$bmiCat <- cut(bmiQuants, unique(bmiQuants), include.lowest=TRUE)
 
 source("tables.R")
 source("jasonExplore.R")
-
+source("johnExplore.R")
 
