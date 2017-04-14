@@ -18,4 +18,5 @@ bmiKM <- NULL
 alcKM <- survfit(survObject ~ full$alcohol)
 
 ggsurv(alcKM, plot.cens = F) +
-  
+  ggtitle("KM Estimates Statified by Alcohol Consumption") +
+  scale_fill_discrete(name = "New Legend Title")
