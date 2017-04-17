@@ -16,9 +16,12 @@ library(plyr)
 library(dplyr)
 ```
 
-##Exploring Our Data
 
-- We are using the following covariates in our analysis:
+## Exploring Our Data
+
+- Overall, there are 16 variables included in our original data 
+
+- We plan to use the following covariates in our analysis:
 sex, Socio.Economic, alcohol, cigar, BMInew.
 
 - Our time variable is DURATION
@@ -31,10 +34,59 @@ sex, Socio.Economic, alcohol, cigar, BMInew.
 
 - Our full dataset is therefore 126665x17
 
-- We also need to take care of the occasional duplicate measure for Socio.Economic reclassification.
 
+## Removing Problematic Observations, Part I - BMI
 
-## Further Summary Statistics
+We ran into two issues while examining our data that could confound our future analyses. The first was the presence of funky measures for BMI in both the censored and transitioned datasets:
+
+```{r}
+max(full$BMInew)
+min(full$BMInew)
+boxplot(full$BMInew, ylab = "BMInew")
+```
+
+The population for our study consists of people with an existing history of moderate hypertension; a health problem generally associated with an unhealthy body weight. However, we believe that a BMI of 0.2 or 66000.0 is likely the product of clerical data entry error, and inspection of the boxplot can confirm that there are many other outlandishly inaccurate BMI measures in our dataset. 
+
+After considering the origins of our data and the range of values that a person with moderate hypertension's BMI can take, we decide to omit any BMI measures under 12.00 or above 100.00.
+
+```{r}
+full$BMInew <- ifelse(full$BMInew > 100 | full$BMInew < 12, NA, full$BMInew)
+full <- na.omit(full)
+```
+
+With junk values removed, our new dataset, full, is now 126339x17.
+
+## Removing Problematic Observations, Part II - Socio-Economic Classifications
+
+We also noticed duplicate observations in our data that had the same exact Unique ID and covariate levels aside from Socio.Economic and its associated date. Some subjects in the study had their socio-economic standing re-evaluated during the study; we will use the earliest measure for each observation, and remove any subsequent measures for the same subject.
+
+```{r}
+longFormat = "%d/%m/%Y"
+shortFormat = "%d/%m/%y"
+full$Socio.Econdate <- as.character(full$Socio.Econdate)
+full$Socio.Econdate <- ifelse(full$Socio.Econdate != "", full$Socio.Econdate, NA)
+
+longYear <- grep(pattern = ".+\\d{4}$", x=full$Socio.Econdate)
+shortYear <- !(seq(1, nrow(full)) %in% longYear)
+
+long <- full[longYear, ]
+short <- full[shortYear, ]
+
+long$Socio.Econdate <- as.Date(long$Socio.Econdate, format=longFormat)
+short$Socio.Econdate <- as.Date(short$Socio.Econdate, format=shortFormat)
+
+full1 <- rbind(long, short)
+
+ordered <- full1 %>%
+              arrange(Socio.Econdate)
+
+duplicates <- duplicated(ordered$UNQID_tmp)
+full <- ordered[!duplicates, ]
+```
+
+Our new dataset, full, is 126061x17.
+
+## Tabular Analysis of our Data
 
 ```{r, echo = FALSE}
 table.sex <- rbind(table(transitioned$sex),table(censored$sex),table(full$sex)) #Summarizing sex counts
@@ -63,7 +115,8 @@ rownames(table.socio) <- c("Trasnsitioned","Censored","All")
 table.socio
 ```
 
-Summary statistics for BMI - These are a bit wonky. We will revisit this table a bit later in the report.
+Summary statistics for BMI:
+
 ```{r, echo = FALSE}
 
 table.BMI <- rbind(summary(transitioned$BMInew),
@@ -97,46 +150,6 @@ Summary statistics for DURATION:
 
 ```{r, echo = FALSE}
 table.duration
-```
-
-## A Few Words About BMI and Other Data Management Issues
-
-We found some funky BMI values for certain subjects in the study.
-
-```{r}
-max(full$BMInew)
-min(full$BMInew)
-boxplot(full$BMInew, ylab = "BMInew")
-```
-
-The population for our study consists of people with an existing history of moderate hypertension; a health problem generally associated with an unhealthy body weight. However, we believe that a BMI of 0.2 or 66000.0 is likely the product of clerical data entry error, and inspecting the boxplot confirms that there are many other outlandishly incorrect BMI measures in our dataset. We need to remove these broken values:
-
-```{r}
-full2 <- full
-full2$BMInew <- ifelse(full2$BMInew > 100 | full2$BMInew < 12, NA, full2$BMInew)
-full2 <- na.omit(full2)
-```
-
-After considering the origins of our data and the range of values that a person with moderate hypertension's BMI can take, we decide to omit any BMI measures under 12.00 or above 100.00.
-
-With junk values removed, our new dataset, full2, is now 126339x17.
-
-The new table of summary statistics for each dataset's BMI measures is as such:
-
-```{r, echo = FALSE}
-censored2 <- censored
-censored2$BMInew <- ifelse(censored2$BMInew > 100 | censored2$BMInew < 12, NA, censored2$BMInew)
-censored2 <- na.omit(censored2)
-
-transitioned2 <- transitioned
-transitioned2$BMInew <- ifelse(transitioned2$BMInew > 100 | transitioned2$BMInew < 12, NA, transitioned2$BMInew)
-transitioned2 <- na.omit(transitioned2)
-
-table.BMI2 <- rbind(summary(transitioned2$BMInew),
-                   summary(censored2$BMInew),
-                   summary(full2$BMInew)) #Summarizing the BMI
-rownames(table.BMI2) <- c("Trasnsitioned","Censored","All")
-table.BMI2
 ```
 
 
@@ -281,21 +294,18 @@ density <- ggplot(data=full, mapping=aes(x=DURATION, fill=event)) +
               scale_y_continuous(labels = scales::percent)
 
 # Need to remove BMI outliers
-full2 <- full
-full2$BMInew <- ifelse(full2$BMInew > 100 | full2$BMInew < 15, NA, full2$BMInew)
-full2 <- na.omit(full2)
-bmiQuants <- quantile(full2$BMInew, seq(0, 1, 0.25))
-full2$bmiCat <- cut(full2$BMInew, unique(bmiQuants), include.lowest=TRUE)
-full2$bmiCat <- factor(full2$bmiCat, unique(levels(full2$bmiCat))[c(1,2,3,4)], labels=c("Low", "Medium", "High", "Obese"))
+
+bmiQuants <- quantile(full$BMInew, seq(0, 1, 0.25))
+full$bmiCat <- cut(full$BMInew, unique(bmiQuants), include.lowest=TRUE)
+full$bmiCat <- factor(full$bmiCat, unique(levels(full$bmiCat))[c(1,2,3,4)], labels=c("Low", "Medium", "High", "Obese"))
 
 # Exploratory KM Estimates
 survObject <- Surv(full$DURATION, full$event)
-survObject2 <- Surv(full2$DURATION, full2$event)
-bmiKM <- survfit(survObject2 ~ full2$bmiCat)
+bmiKM <- survfit(survObject ~ full$bmiCat)
 alcKM <- survfit(survObject ~ full$alcohol)
 cigKM <- survfit(survObject ~ full$cigar)
 seKM <- survfit(survObject ~ full$Socio.Economic)
-fitKM <- survfit(survObject2 ~ 1)
+fitKM <- survfit(survObject ~ 1)
 
 ggsurv(fitKM, plot.cens=F) +
   ggtitle("Estimated Probability of Survival over Time")
