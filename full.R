@@ -7,6 +7,7 @@ transitioned <- read.csv(" .csv")
 censored <- read.csv(" .csv")
 full <- rbind(transitioned,censored)
 full$event <- as.numeric(full$Partial_code_ff)
+full$event <- ifelse(full$event == 2, 0, 1) # fixed 4-19-17
 full$BMInew <- ifelse(full$BMInew > 100 | full$BMInew < 12, NA, full$BMInew)
 full <- na.omit(full)
 
