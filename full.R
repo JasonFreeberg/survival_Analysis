@@ -1,13 +1,14 @@
-library(ggplot2)
 library(survival)
+library(ggplot2)
+library(survminer)
 library(plyr)
 library(dplyr)
-
-transitioned <- read.csv(" .csv")
-censored <- read.csv(" .csv")
+library(flexsurv)
+transitioned <- read.csv("196 transition.csv")
+censored <- read.csv("196 censor.csv")
 full <- rbind(transitioned,censored)
 full$event <- as.numeric(full$Partial_code_ff)
-full$event <- ifelse(full$event == 2, 0, 1) # fixed 4-19-17
+full$event <- ifelse(full$event == 2, 0, 1)
 full$BMInew <- ifelse(full$BMInew > 100 | full$BMInew < 12, NA, full$BMInew)
 full <- na.omit(full)
 
@@ -28,4 +29,14 @@ ordered <- full %>%
 
 duplicates <- duplicated(ordered$UNQID_tmp)
 full <- ordered[!duplicates, ]
-# 
+
+bmiQuants <- quantile(full$BMInew, seq(0, 1, 0.25))
+full$bmiCat <- cut(full$BMInew, unique(bmiQuants), include.lowest=TRUE)
+full$bmiCat <- factor(full$bmiCat, unique(levels(full$bmiCat))[c(1,2,3,4)], labels=c("Low", "Medium", "High", "Obese"))
+
+full$SC <- ifelse(full$sex == 1 & full$cigar == 1, "MS",
+           ifelse(full$sex == 2 & full$cigar == 1, "FS",
+           ifelse(full$sex == 1 & full$cigar == 0, "MN", "FN")))
+full$SC <- as.factor(full$SC)
+
+obj <- Surv(full$DURATION, full$event)
