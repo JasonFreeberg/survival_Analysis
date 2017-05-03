@@ -40,3 +40,10 @@ full$SC <- ifelse(full$sex == 1 & full$cigar == 1, "MS",
 full$SC <- as.factor(full$SC)
 
 obj <- Surv(full$DURATION, full$event)
+
+
+# 2 models
+m4 <- coxph(obj ~ full$AGE_PRE + full$BMInew + full$SC) # reduced
+m3 <- coxph(obj ~ full$BMInew +  full$AGE_PRE + full$sex + full$cigar + full$alcohol + full$Socio.Economic) # full model
+BIC(m4) # compare
+BIC(m3)
