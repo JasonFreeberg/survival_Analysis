@@ -1,16 +1,20 @@
 library(survival)
 library(ggplot2)
-library(survminer)
+#library(survminer)
 library(plyr)
 library(dplyr)
-library(flexsurv)
-transitioned <- read.csv("196 transition.csv")
-censored <- read.csv("196 censor.csv")
+
+transitioned <- read.csv("transitioned.csv")
+censored <- read.csv("censored.csv")
+
 full <- rbind(transitioned,censored)
 full$event <- as.numeric(full$Partial_code_ff)
 full$event <- ifelse(full$event == 2, 0, 1)
 full$BMInew <- ifelse(full$BMInew > 100 | full$BMInew < 12, NA, full$BMInew)
 full <- na.omit(full)
+
+full <- full[full$AGE_PRE>0,]
+full <- full[full$DURATION>0,]
 
 longFormat = "%d/%m/%Y"
 shortFormat = "%d/%m/%y"
@@ -40,7 +44,6 @@ full$SC <- ifelse(full$sex == 1 & full$cigar == 1, "MS",
 full$SC <- as.factor(full$SC)
 
 obj <- Surv(full$DURATION, full$event)
-
 
 # 2 models
 m4 <- coxph(obj ~ full$AGE_PRE + full$BMInew + full$SC) # reduced
