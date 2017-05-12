@@ -153,7 +153,8 @@ censored <- read.csv(file="censored.csv", header=T)
 full <- rbind(transitioned, censored)
 
 full$Partial_code_ff <- as.numeric(full$Partial_code_ff)    # Coerce the event variable to numeric
-
+full$event <- ifelse(full$Partial_code_ff == 1, 1, 0)
+  
 #
 ##
 ###

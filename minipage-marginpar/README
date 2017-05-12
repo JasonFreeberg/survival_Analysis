@@ -1,0 +1,160 @@
+[en]
+LaTeX-package 'minipage-marginpar' - allows \marginpars in minipages
+and other boxes
+
+Author:  Paul Ebermann <Paul-Ebermann@gmx.de>
+License: LPPL 1.3b or later, maintained
+         (see http://www.latex-project.org/lppl/).
+
+All Documentation (other than this file) is in german.
+
+The typesetting of the documentation needs 'pauldoc' (from the
+same author).
+
+The package comes as .dtx + .ins.
+Run "latex minipage-marginpar.ins" to create the style file (and maybe put
+it to texmf/tex/latex/paul/, if your docstrip is configured
+accordingly), run (after that and maybe updating your TeX hash)
+"latex minipage-marginpar.dtx" to create the documentation.
+
+ Usage
+-------
+
+Put \usepackage{minipage-marginpar} in your document preamble.
+
+Then you can use the environment 'minipagewithmarginpars',
+which works like minipage (but default align ist 't'),
+in which \marginpar-commands are allowed, when the environment
+is not used inside another box.
+
+Example:
+
+   \begin{minipagewithmarginpars}{5cm}
+	  Hello World. \marginpar{a margin note.}
+   \end{minipagewithmarginpars}
+
+You may want to create similar environments yourself,
+for example to have boxed minipages. For this you
+may use the internal commands \mpgmpar@savemarginpars
+(inside a group) and \mpgmpar@restoremarginpars (after
+this group, at a place where marginpars are allowed).
+
+Try this:
+
+  \makeatletter
+  \newbox\boxed@box
+  \newenvironment{boxedpage}[1]{%
+     \begin{lrbox}{\boxed@box}%
+       \begin{minipage}[t]{#1}
+       \mpgmpar@savemarginpars
+  }{%
+       \end{minipage}%
+     \end{lrbox}%
+     \mpgmpar@restoremarginpars
+  }%
+  \makeatother
+
+
+  This ist a \begin{boxedpage}{4cm} boxed page with
+  \marginpar{margin paragraphs}
+  \end{boxedpage}.
+
+Environments created this way may be nested, the marginpars
+then appear around the outest one.
+
+----------------
+[de]
+LaTeX-Paket 'minipage-marginpar' - Randnotizen auch in Minipages
+
+Autor:  Paul Ebermann (Paul-Ebermann@gmx.de).
+Lizenz: LPPL 1.3b oder später, mit Maintenance-Status
+        "maintained". Siehe http://www.latex-project.org/lppl/.
+
+Geschrieben für den eigenen Gebrauch
+(-> http://www.math.hu-berlin.de/~ebermann/alg-script/),
+aber vielleicht ist es auch für andere von Nutzen.
+
+Zum Setzen der Dokumentation wird das Paket 'pauldoc'
+(vom selben Autor) benötigt.
+
+Das Paket kommt als .dtx + .ins.
+Mit "latex minipage-marginpar.ins" wird die .sty-Datei erstellt (und
+eventuell gleich nach texmf/tex/latex/paul/ installiert,
+wenn docstrip entsprechend eingerichtet ist), mit
+latex minipage-marginpar.dtx kann (danach und eventuell nach einer
+Aktualisierung der TeX-Dateidatenbank) die Dokumentation neu
+erstellt werden.
+
+Zur Verwendung siehe minipage-marginpar.pdf.
+----------------
+[eo]
+LaTeX-pakaĵo 'minipage-marginpar' - marĝenaj notoj ankau en
+                                     minipage-oj kaj aliaj boksoj.
+
+Aŭtoro:  Paŭlo Ebermann (Paul-Ebermann@gmx.de).
+Licenzo: LPPL 1.3, 'maintained'
+         (-> http://www.latex-project.org/lppl/).
+
+Kreitaj por propra uzo, sed eble iom de ĝi ankaŭ
+uzeblas por aliaj.
+
+La dokumentaro (escepte tiu ĉi dosiero) estas nur en la germana
+lingvo.
+
+Por krei la dokumentadon vi krome bezonas 'pauldoc' (de la sama aŭtoro).
+
+La pakaĵo venas en .dtx + .ins.
+Voku "latex minipage-marginpar.ins" por krei la .sty-dosieron (kaj
+eble meti ĝin al texmf/tex/latex/paul/, se via docstrip estis
+konfigurita laŭe), voku "latex minipage-marginpar.dtx" por rekrei
+la dokumentaron.
+
+ Uzado
+-------
+
+Metu
+
+    \usepackage{minipage-marginpar}
+
+en la komencon de la dokumento (antaŭ \begin{document}).
+
+Poste vi povas uzi
+
+	\begin{minipagewithmarginnotes}
+	   ...
+    \end{minipagewithmarginnotes}
+
+kaj en tiu ĉirkaŭo la ordono \marginpar{} estas uzebla, se la
+tuta aĵo ne estas ene de alia bokso.
+
+
+Por uzi \marginpar{} ankaŭ ene de aliaj boksoj, vi povos
+krei novajn versiojn de la boks-kreaj komandoj (aŭ ĉirkaŭoj),
+uzante la du ordonojn \mpgmpar@savemarginpars (ene de grupo)
+kaj \mpgmpar@restoremarginpars (post la fino de tiu grupo, kiam
+denove \marginpar{} estas uzebla).
+
+Jen ekzemplo (minipage kun kadro:)
+
+---
+  \makeatletter
+  \newbox\boxed@box
+  \newenvironment{boxedpage}[1]{%
+     \begin{lrbox}{\boxed@box}%
+       \begin{minipage}[t]{#1}
+       \mpgmpar@savemarginpars
+  }{%
+       \end{minipage}%
+     \end{lrbox}%
+     \mpgmpar@restoremarginpars
+  }%
+  \makeatother
+
+
+  Tio estas \begin{boxedpage}{4cm} kadrita paĝo kun \marginpar{marĝena noto}.
+  \end{boxedpage}
+---
+
+Tiaj ĉirkaŭojn eblas meti unu ene de alia, la marĝenaj notoj aperos
+apud la plej ekstera.
+

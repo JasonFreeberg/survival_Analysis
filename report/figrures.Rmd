@@ -1,0 +1,61 @@
+---
+title: "figures"
+author: "Jason Freeberg"
+date: "4/27/2017"
+output: pdf_document
+header-includes:
+    - \usepackage{caption}
+---
+
+*Run this after the main report .Rmd file*
+
+\captionsetup[table]{labelformat=empty}
+
+```{r, echo=T}
+library(xtable)
+table.sex <- rbind(table(transitioned$sex), # Summarizing sex counts
+                   table(censored$sex), 
+                   table(full$sex))
+
+# Show row percentages of sex
+table.sex.prop <- as.data.frame(as.matrix(round(prop.table(table.sex, 1), digits = 3))) 
+
+rownames(table.sex.prop) <- c("Transitioned","Censored","All")
+colnames(table.sex.prop) <- c("Male","Female")
+
+rownames(table.sex) <- c("Transitioned","Censored","All")
+colnames(table.sex) <- c("Male","Female")
+
+table.sex <- as.data.frame(as.matrix(table.sex))
+
+# Write table to image and use that in the knitr
+kable(list(table.sex, table.sex.prop), caption = "Table 2. Censorship by Sex")
+```
+
+\pagebreak
+
+```{r}
+# Socio-economic table
+
+table.socio <- rbind(table(transitioned$Socio.Economic),
+                     table(censored$Socio.Economic),
+                     table(full$Socio.Economic)) #Summarizing socio.economic status counts
+
+rownames(table.socio) <- c("Transitioned","Censored","All")
+table.socio.prop <- round(prop.table(table.socio, 1), 3)
+
+kable(table.socio.prop, caption = "Table 3. Censorship by Socioeconomic Status")
+```
+
+```{r}
+# BMI table
+table.BMI <- rbind(summary(transitioned$BMInew),
+                   summary(censored$BMInew),
+                   summary(full$BMInew)) #Summarizing the BMI
+rownames(table.BMI) <- c("Trasnsitioned","Censored","All")
+
+kable(table.BMI, caption="Table 4. Censorship by BMI Quartile")
+```
+
+
+

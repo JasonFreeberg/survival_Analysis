@@ -1,5 +1,6 @@
 # this is a comment
 # Keep data from being pushed to Git Server
 
+*.xlsx
 *.csv
 .RHistory

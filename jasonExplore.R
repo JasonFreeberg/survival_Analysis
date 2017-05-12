@@ -22,7 +22,7 @@ full2$bmiCat <- factor(full2$bmiCat, unique(levels(full2$bmiCat))[c(1,2,3,4)], l
 
 # Exploratory KM Estimates
 survObject <- Surv(full$DURATION, event=full$Partial_code_ff)
-survObject2 <- Surv(full2$DURATION, event=full2$Partial_code_ff)
+survObject2 <- Surv(full2$DURATION, event=full2$event)
 bmiKM <- survfit(survObject2 ~ full2$bmiCat)
 alcKM <- survfit(survObject ~ full$alcohol)
 cigKM <- survfit(survObject ~ full$cigar)
