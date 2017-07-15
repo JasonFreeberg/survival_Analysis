@@ -155,8 +155,8 @@ censored <- read.csv(file="~/Desktop/R/survival_Analysis/censored.csv", header=T
 full <- rbind(transitioned, censored)
 
 # Recode the event column -- otherwise it is treated incorrectly 
-full$Partial_code_ff <- as.numeric(full$Partial_code_ff)    # Coerce the event variable to numeric
-full$event <- ifelse(full$Partial_code_ff == 1, 1, 0)
+#full$Partial_code_ff <- as.numeric(full$Partial_code_ff)    # Coerce the event variable to numeric
+full$event <- ifelse(full$Partial_code_ff == "2,000", 0, 1)
 ```
 
 # Introduction
@@ -234,8 +234,7 @@ full$event <- as.numeric(full$Partial_code_ff)
 full$event <- ifelse(full$event == 2, 0, 1)
 
 # Remove outlier BMI values 
-full$BMInew <- ifelse(full$BMInew > 75 | full$BMInew < 12, NA, full$BMInew)
-full <- na.omit(full)
+full <- full[full$BMInew > 12 & full$BMInew < 75, ]
 
 # Coerce the date strings to proper date types
 longFormat = "%d/%m/%Y"
@@ -261,8 +260,8 @@ full <- ordered[!duplicates, ]
 # Create quantiles for BMI values
 bmiQuants <- quantile(full$BMInew, seq(0, 1, 0.25))
 full$bmiCat <- cut(full$BMInew, unique(bmiQuants), include.lowest=TRUE)
-full$bmiCat <- factor(full$bmiCat, unique(levels(full$bmiCat))[c(1,2,3,4)], labels=c("Low", "Medium", "High", "Obese"))
-
+full$bmiCat <- factor(full$bmiCat, unique(levels(full$bmiCat))[c(1,2,3,4)], labels=c("Obese", "High", "Medium", "Low"))
+full$bmiCat2 <- factor(full$bmiCat, unique(levels(full$bmiCat))[c(1,2,3,4)], labels=c("Low", "Medium", "High", "Obese"))
 # Create a single variable that encodes sex and smoking status
 full$SC <- ifelse(full$sex == 1 & full$cigar == 1, "MS",
            ifelse(full$sex == 2 & full$cigar == 1, "FS",
@@ -270,10 +269,8 @@ full$SC <- ifelse(full$sex == 1 & full$cigar == 1, "MS",
 full$SC <- as.factor(full$SC)
 
 # Remove variables with negative ages and zero survival time
-full$AGE_PRE <-  ifelse(full$AGE_PRE <= 0, NA, full$AGE_PRE)
-full$DURATION <- ifelse(full$DURATION == 0, NA, full$DURATION)
-full <- na.omit(full)
-
+full <- full[full$AGE_PRE >= 0,  ]
+full <- full[full$DURATION != 0, ]
 ```
 
 ## Further Analysis
@@ -309,7 +306,7 @@ colorCodes <- lapply(full$SC, FUN=colorCode)
 
 fig2 <-
   ggplot(full) +
-  geom_violin(aes(x=as.factor(SC), BMInew)) +
+  geom_boxplot(aes(x=as.factor(SC), BMInew)) +
   ggtitle("Figure 2. BMI distribution by \n sex and smoking status") +
   ylab("Body Mass Index") +
   xlab("Stratum") 
@@ -330,10 +327,13 @@ Now that we have explored the dataset, we begin our modeling phase. First, our t
 
 ```{r, message=F, echo=F}
 # Make the Survival objects
-survObject <- Surv(full$DURATION, event=full$Partial_code_ff)
-bmiKM <- survfit(survObject ~ full$bmiCat)
+survObject <- Surv(full$DURATION, event=full$event)
+bmiKM <- survfit(survObject ~ full$bmiCat2)
 alcKM <- survfit(survObject ~ full$alcohol)
 SCKM <-  survfit(survObject ~ full$SC)
+sexKM <- survfit(survObject ~ full$sex)
+cigKM <- survfit(survObject ~ full$cigar)
+ageCatKM <- survfit(survObject ~ full$ageCat)
 ```
 
 ## Kaplan Meier Plots
@@ -350,13 +350,31 @@ fig3 <-
 fig4 <- 
   ggsurv(bmiKM, plot.cens = F) + 
   ggtitle("Figure 4. KM Estimates \n by BMI Level") +
-  guides(fill=guide_legend(title="BMI Level")) +
+   scale_fill_discrete("") +
   ylab("")
 
 fig5 <-
-  ggsurv(SCKM, plot.cens = F)  +
+ggsurv(SCKM, plot.cens = F)  +
   ggtitle("Figure 5. KM Estimates \n by Sex and Cigarette Usage") +
   guides(fill=guide_legend(title="Sex/Smoker")) +
+  ylab(expression("P(T">="t)"))
+
+#plot(SCKM, col = c(1,2,3,4), fun = "cloglog", xlab = "log(Time)", ylab = "log(-log(Survival))") 
+#title("Log-Log Plot of Sex and Smoking Status")
+
+plot(bmiKM, col=c(1,2,3,4), fun="cloglog", xlab = "log(Time)", ylab = "log(-log(Survival))")
+title("Log-Log Plot of BMI Quartiles")
+
+ageQuants <- quantile(full$AGE_PRE, seq(0, 1, 0.25))
+full$ageCat <- cut(full$AGE_PRE, unique(ageQuants), include.lowest=TRUE)
+full$ageCat <- as.factor(full$ageCat)
+ageCatKM <- survfit(survObject ~ full$ageCat)
+
+plot(ageCatKM, col = c(1,2,3,4), fun = "cloglog", xlab = "log(Time)", ylab = "log(-log(Survival))") 
+title("Log-Log Plot of Sex and Smoking Status")
+
+ggsurv(ageCatKM, plot.cens = F)  +
+  guides(fill=guide_legend(title="AgeCat")) +
   ylab(expression("P(T">="t)"))
 
 # 2 plots in first, 1 in row
@@ -370,15 +388,216 @@ knitr::include_graphics("fig2_3_4.png")
 
 _Fix these plots. Either one per row, or move legends into the open cell on bottom right (if that's possible)._
 
-The factor levels in Figure 4 are broken down by quantile; please see Table 5 shown below. In Figure 5, the first letter corresponds to the sex, and the second letter corresponds to their smoking status (**s**moker or **n**onsmoker).
+The factor levels in Figure 4 are broken down by quartile; please see Table 5 shown below. In Figure 5, the first letter corresponds to the sex, and the second letter corresponds to their smoking status (**s**moker or **n**onsmoker).
 
-_Needs a title_
+\begin{center} 
+  \text{Table 5. BMI Quartiles} \\
+\end{center}
 
-| Quantile Name | BMI Range     |
-|:-------------|:-------------:|
+| Quartile Name | BMI Range     |
+|:------------- |:-------------:|
 | Low           | [12.1, 23.9)  |
 | Medium        | [23.9, 26.7)  |
 | High          | [26.7, 30.2)  |
 | Obese         | [30.2, 74.5]  | 
 
 ## Cox Modeling
+
+We began our modeling with every available predictor. Then, after removing variables that did not satisfy the Proportional Hazards assumption, we arrived at a model using the patients' sex, age, cigarette usage, and BMI as the predictors. We tried to incorporate each patient's socio-economic status as an additional predictor, but we found that it failed the proportionality test.
+
+### Satisfying the Assumption
+
+```{r, echo=F}
+obj <- Surv(full$DURATION, full$event)
+
+strat1 <- coxph(obj ~ full$AGE_PRE + 
+                      full$BMInew + 
+                      full$SC
+                      #full$Socio.Economic)
+                      #strata(full$Socio.Economic)
+                )
+```
+
+We began by finding a reduced model with significant predictors which entirely satisfied the proportionality assumption.
+
+\begin{center} 
+  \text{Table 6. Covatiates and Relevant Values} \\
+\end{center}
+
+| Covariate      | $e^{\text{coef}}$ | p-value for P.H. test|
+|:---------------|:-----------------:|:--------------------:|
+| Age            | 1.0265404         |  0.1113              |
+| BMI            | 1.0224083         |  0.8120              |
+| Female Smoker  | 1.1066684         |  0.0808              |
+| Male Nonsmoker | 0.9504585         |  0.4879              |
+| Male Smoker    | 1.0019740         |  0.2939              |
+
+In Table 6, the covariates concerning sex and smoking status are all relative to female nonsmokers. For example, our model indicates that a male nonsmoker has an incident rate that is 95% of female nonsmokers (all else held equal). This combination of predictors is the only one that satisfied the proportional hazards assumption.
+
+
+```{r, echo=F}
+
+summary(strat1)
+cox.zph(strat1)
+
+```
+
+### Stratified Modeling
+
+Now that we have built a model which satisfies the Cox Proportional Hazards Assumption, we will turn our attention to the socio-economic predictor. Our team was especially interested the effects of this predictor, so we decided to investigate it as a stratified covariate.
+
+```{r, echo=F}
+
+strat2 <- coxph(obj ~ AGE_PRE + 
+                      BMInew + 
+                      SC +
+                      strata(full$Socio.Economic),
+                data = full
+                )
+
+newData <- full[c(3,4,5), ]
+# 
+# newData = data.frame(
+#   "AGE_PRE" = c(50, 50, 50, 50, 50),
+#   "BMInew"  = c(30, 30, 30, 30, 30),
+#   "SC"      = c(1, 1, 0, 0, 0),
+#   "Socio.Economic" = as.factor(c(1,2,3,4,5)),
+#   "DURATION" = c(1,),
+#   "event" = c(0, 0, 0, 0, 0)
+# )
+
+```
+
+### Cross Validation
+
+```{r, echo=F}
+set.seed(196)
+
+# Split test/train data
+minyear = 3
+maxyear = 4
+trainFrac = 0.75
+
+# Subset to between minyear and maxyear b4 split
+toSplit <- full[between(full$DURATION, minyear*365, maxyear*365), ]
+toSplit$event2 <- as.factor(toSplit$event)
+trainIndx <- sample(x = 1:nrow(toSplit), 
+                   size = nrow(toSplit)*trainFrac)
+train <- toSplit[trainIndx, ]
+test <- toSplit[-trainIndx, ]
+assertthat::are_equal(nrow(toSplit), (nrow(train) + nrow(test)))
+
+# build model
+control = glm.control(maxit = 45)
+logitModel <- glm(formula = event2 ~ AGE_PRE 
+                                   + BMInew 
+                                   + Socio.Economic
+                                   + cigar
+                                   + sex,
+                  data = train, family = binomial(), control = control)
+
+predictedProbs <- predict(logitModel, newdata = test, type = "response")
+test$pred <- predictedProbs
+
+predObject <- ROCR::prediction(test$pred, test$event2)
+ROCcurve <- ROCR::performance(predObject, measure="tpr", x.measure="fpr")
+
+ROCR::plot(ROCcurve)
+title("ROC Curve for Logit Model")
+abline(a=0, b=1)
+
+auc <- ROCR::performance(predObject, measure="auc")@y.values
+```
+
+
+```{r}
+summary(logitModel)
+```
+
+Our model achieved an AUC score of `r auc[[1]][1]` on the test set. 
+
+```{r, echo=F}
+# set.seed(196)
+# 
+# # Split test/train data
+# nYears = 3.5
+# nDays = nYears * 365
+# trainFrac = 0.75
+# trainIndx <- sample(x = 1:nrow(full), 
+#                    size = nrow(full)*trainFrac)
+# train <- full[trainIndx, ]
+# test <- full[-trainIndx, ]
+# assertthat::are_equal(nrow(full), (nrow(train) + nrow(test)))
+# 
+# # Refit the model on train data
+# # trainObj <- Surv(DURATION,event,data=train)
+# trainModel <- coxph(Surv(DURATION,event) ~ AGE_PRE + 
+#                                            BMInew + 
+#                                            SC,
+#                                            #strata(Socio.Economic),
+#                     data = train)
+# 
+# risk <- predict(trainModel, newdata=test, type="risk")
+# expected <- predict(trainModel, newdata=test, type="expected")
+# 
+# # Get the mean hazard rate in train set
+# baseRates = basehaz(trainModel)
+# hazardSum = sum(baseRates$hazard[baseRates$time <= floor(nDays)])
+# probAtNDays = exp(-hazardSum)^risk
+# 
+# # rateAtNDays = baseRates[baseRates$time == floor(nDays), ]
+# # rateAtNDays$strata <- as.character(rateAtNDays$strata)  # cleanup
+# # rateAtNDays$Socio.Economic <- rateAtNDays$strata
+# # rateAtNDays$strata <- c(1,2,3,4,5)
+# 
+# train$expXB <- predict(trainModel, train, type="risk")
+# train <- join(train, rateAtNDays, by="Socio.Economic", type="left")
+# train$predProb <- train$hazard * train$expXB
+# 
+# 
+# # Use model to predict on test set
+# # #   - Predict probability of transition at 3.5 years
+# # 
+# # # Fit exponentiated linear predictor
+# # predict(object = trainModel, 
+# #         newdata = test, 
+# #         type = "risk"
+# #         )
+# # 
+# # test$expXB <- expXB
+# # test <- join(x = ass, y = rateAtNDays, by = "Socio.Economic", type="left")
+# # 
+# # test <- test[test$DURATION >= floor(nDays), ]
+# # test$predProb <- test$hazard * test$expXB
+# # #ass2$predProb2 <- 
+# # 
+# # # Assess the results
+
+```
+
+.
+
+..
+
+...
+
+....
+
+...
+
+..
+
+.
+
+# Acknowledgements
+
+We would like to thank the following individuals for their contributions to the project. Some of our analysis would not have been possible without their assistance.
+
+* Professor Ian Duncan and Shannon Nicponski 
+    + For advising our team throughout the project
+* Terry M Therneau and Thomas Lumley
+    + For authoring and maintaining the [Survival](ftp://debian.ustc.edu.cn/CRAN/web/packages/survival/survival.pdf) package
+* Tal Galili
+    + For publicizing his [ggsurv](https://www.r-statistics.com/2013/07/creating-good-looking-survival-curves-the-ggsurv-function/) function on R-statistics.com
+* Hadley Wickham
+    + For authoring the plyr, dplyr, and ggplot2 packages
